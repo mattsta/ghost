@@ -1,0 +1,12 @@
+{application, ghost,
+ [
+  {description, "ghost - generalized hierarchical object storage"},
+  {vsn, "0.3"},
+  {modules, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {env, []}
+ ]
+}.
