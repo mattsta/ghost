@@ -25,8 +25,8 @@
 (defsyntax key-children-of-object
  ([parent-id] (: eru er_key parent-id 'children)))
 
-(defsyntax key-vote-aggregate
- ([parent-id child-id] (: eru er_key 'vote parent-id child-id)))
+(defsyntax key-vote-object-total
+ ([child-id] (: eru er_key 'vote 'object child-id)))
 
 (defsyntax key-data
  ([data] (: eru er_key 'data (: mochihex to_hex (: crypto sha data)))))
@@ -69,24 +69,31 @@
   (key-children-of-object object-id) 0 (- n 1) 'withscores))
 
 (defun object_children (redis object-id)
- (object_top_n_children redis object-id 'inf))
+ (object_top_n_children redis object-id 0)) ; this zero gets turned into -1
+                                            ; and -1 means "the last entry"
 
 (defun object_resolve_to_height (redis object-id height)
  (lc ((<- (tuple child score) (object_top_n_children redis object-id height)))
-  (tuple child score (recur-child-depth redis (object_children redis child)))))
+  (tuple child score
+   (recur-child-depth redis child (object_children redis child)))))
 
-(defun recur-child-depth (redis child-ids-with-scores)
- (recur-child-depth redis child-ids-with-scores '() '()))
+(defun recur-child-depth (redis parent-id child-ids-with-scores)
+ (recur-child-depth redis child-ids-with-scores (list parent-id) '()))
 
 (defun recur-child-depth
- ([redis '() seen result] result)
+ ([redis '() seen result] (: lists reverse result))
  ([redis ((tuple child-id child-score) . xs) seen result]
   (cond
-   ((: lists member child-id seen) result)
-   ('true (recur-child-depth redis xs (cons child-id seen)
-            (cons (tuple child-id child-score
-              (recur-child-depth redis (object_children redis child-id)))
-            result))))))
+   ((: lists member child-id seen)
+     (recur-child-depth redis xs seen ; already in seen, no adding child again
+      (cons (tuple child-id child-score 'cycle) result)))
+   ('true
+    (let ((new-seen (cons child-id seen)))
+     (recur-child-depth redis xs new-seen
+      (cons (tuple child-id child-score
+             (recur-child-depth redis (object_children redis child-id)
+              new-seen '()))
+       result)))))))
    
 ;;;--------------------------------------------------------------------
 ;;; Vote Casting
@@ -95,16 +102,21 @@
  (let (((list delta type) (case diff
                            ('up   (list +1 'up))
                            ('down (list -1 'down)))))
+  (: er incrby redis (key-vote-object-total child-id) delta)
   (: er sadd redis (key-object-vote parent-id child-id type) user-id)
   (: er sadd redis (key-user-vote user-id type)
                    (: eru er_key parent-id child-id))
   (object_weight_update redis parent-id child-id delta)
   (: er publish redis (: eru er_key 'votes 'user user-id) type)
-  (: er publish redis (: eru er_key 'votes 'object child-id parent-id) type)))
+  (: er publish redis (: eru er_key 'votes 'object parent-id child-id) type)
+  (: er publish redis (: eru er_key 'votes 'object child-id) type)))
 
 ;;;--------------------------------------------------------------------
 ;;; Vote Reading
 ;;;--------------------------------------------------------------------
+(defun vote_total_object (redis child-id)
+ (: er get redis child-id))
+
 (defun vote_total (redis parent-id child-id)
  (: er zscore redis (key-children-of-object parent-id) child-id))
 
