@@ -29,7 +29,7 @@
  ([child-id] (: eru er_key 'vote 'object child-id)))
 
 (defsyntax key-data
- ([data] (: eru er_key 'data (: mochihex to_hex (: crypto sha data)))))
+ ([in-data] (: eru er_key 'data (: mochihex to_hex (: crypto sha in-data)))))
 
 ;;;--------------------------------------------------------------------
 ;;; Object Creation
