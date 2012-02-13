@@ -1,11 +1,12 @@
 (defmodule ghost
+ ; GHOST: Generalized Hierarchical Object STorage
  (export all))
 
 ;;;--------------------------------------------------------------------
 ;;; Keys
 ;;;--------------------------------------------------------------------
 (defsyntax key-user-vote
- ([user-id type] (: eru er_key 'vote 'user user-id type)))
+ ([user-id type] (: eru er_key 'ghost 'vote 'user user-id type)))
 
 (defsyntax key-user-vote-up
  ([user-id] (key-user-vote user-id 'up)))
@@ -14,7 +15,8 @@
  ([user-id] (key-user-vote user-id 'down)))
 
 (defsyntax key-object-vote
- ([parent-id child-id type] (: eru er_key 'vote parent-id child-id type)))
+ ([parent-id child-id type]
+  (: eru er_key 'ghost 'vote 'object parent-id child-id type)))
 
 (defsyntax key-object-vote-up
  ([parent-id child-id] (key-object-vote parent-id child-id 'up)))
@@ -23,13 +25,14 @@
  ([parent-id child-id] (key-object-vote parent-id child-id 'down)))
 
 (defsyntax key-children-of-object
- ([parent-id] (: eru er_key parent-id 'children)))
+ ([parent-id] (: eru er_key 'ghost 'children parent-id)))
 
 (defsyntax key-vote-object-total
- ([child-id] (: eru er_key 'vote 'object child-id)))
+ ([child-id] (: eru er_key 'ghost 'vote 'total child-id)))
 
 (defsyntax key-data
- ([in-data] (: eru er_key 'data (: mochihex to_hex (: crypto sha in-data)))))
+ ([in-data] (: eru er_key 'ghost 'data
+             (: mochihex to_hex (: crypto sha in-data)))))
 
 ;;;--------------------------------------------------------------------
 ;;; Object Creation
@@ -49,6 +52,7 @@
  ;          unique metadata isn't useful, but indexing by the actual
  ;          contents of the post/file could be beneficial.
  (case (: er setnx redis object-id data-ptr)
+         ; this sadd is the inverse DATA->{Set of Keys Using Data} map
   ('true (: er sadd redis (key-data data-contents) object-id))
   ('false (tuple 'error 'object_id_already_exists object-id))))
 
@@ -107,9 +111,10 @@
   (: er sadd redis (key-user-vote user-id type)
                    (: eru er_key parent-id child-id))
   (object_weight_update redis parent-id child-id delta)
-  (: er publish redis (: eru er_key 'votes 'user user-id) type)
-  (: er publish redis (: eru er_key 'votes 'object parent-id child-id) type)
-  (: er publish redis (: eru er_key 'votes 'object child-id) type)))
+  (: er publish redis (: eru er_key 'ghost 'votes 'user user-id) type)
+  (: er publish redis (: eru er_key 'ghost 'votes 'object parent-id child-id)
+   type)
+  (: er publish redis (: eru er_key 'ghost 'votes 'object child-id) type)))
 
 ;;;--------------------------------------------------------------------
 ;;; Vote Reading
