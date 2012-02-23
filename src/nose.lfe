@@ -31,7 +31,19 @@
 
 ; set of type:tag -> list of objects with that tag
 (defsyntax key-type-tag-to-object-map
- ([type in-tag] (: eru er_key 'nose type 'tag in-tag)))
+ ([type in-tag]
+  (: eru er_key 'nose type 'tag (lower-case-then-collapse-spaces in-tag))))
+
+; store all tags as lowercase with limited spacing
+(defun lower-case-then-collapse-spaces
+ ([tag] (when (is_list tag))
+  (iolist_to_binary
+   (: re replace (: string to_lower tag) '" +" '" " '(global))))
+ ([tag] (when (is_binary tag))
+  (lower-case-then-collapse-spaces
+   (: unicode characters_to_list (binary_to_list tag))))
+ ([tag] (when (is_atom tag))
+  (lower-case-then-collapse-spaces (atom_to_binary tag 'utf8))))
 
 ; set of all objects UID has admin rights on
 (defsyntax key-owner-admins-objects
@@ -97,12 +109,14 @@
 ; add a tag to an object
 (defun tag-add (redis type object-id tag)
  (: er sadd redis (key-type-tag-to-object-map type tag) object-id)
- (: er sadd redis (key-object-tags type object-id) tag))
+ (: er sadd redis (key-object-tags type object-id) 
+  (lower-case-then-collapse-spaces tag)))
 
 ; remove a tag from an object
 (defun tag-del (redis type object-id tag)
  (: er srem redis (key-type-tag-to-object-map type tag) object-id)
- (: er srem redis (key-object-tags type object-id) tag))
+ (: er srem redis (key-object-tags type object-id)
+  (lower-case-then-collapse-spaces tag)))
 
 ; add an owner to an object (update Owner->OBJs map and OBJ->Owners map)
 (defun owner-add (redis type object-id owner-uid)

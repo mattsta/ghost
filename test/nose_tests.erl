@@ -53,17 +53,17 @@ update_objects() ->
   ?assertEqual(<<"v4">>, NewK4).
 
 tags() ->
-  rnose:'tag-add'(course, 1, poopin),
+  rnose:'tag-add'(course, 1, "poopin   HALP"), % test space removal and to-lc
   rnose:'tag-add'(course, 1, doopin),
-  M1 = rnose:'tag-members'(course, poopin),
+  M1 = rnose:'tag-members'(course, "poopin halp"),
   M2 = rnose:'tag-members'(course, doopin),
   T1 = rnose:'object-tags'(course, 1),
   ?assertEqual([<<"1">>], M1),
   ?assertEqual([<<"1">>], M2),
-  ?assertEqual([<<"doopin">>, <<"poopin">>], lists:sort(T1)),
+  ?assertEqual([<<"doopin">>, <<"poopin halp">>], lists:sort(T1)),
 
-  rnose:'tag-del'(course, 1, poopin),
-  M3 = rnose:'tag-members'(course, poopin),
+  rnose:'tag-del'(course, 1, "pOOPin         halp"),
+  M3 = rnose:'tag-members'(course, "poopin halp"),
   M4 = rnose:'tag-members'(course, doopin),
   T2 = rnose:'object-tags'(course, 1),
   ?assertEqual([], M3),
@@ -71,7 +71,7 @@ tags() ->
   ?assertEqual([<<"doopin">>], T2),
 
   rnose:'tag-del'(course, 1, doopin),
-  M5 = rnose:'tag-members'(course, poopin),
+  M5 = rnose:'tag-members'(course, "poopin halp"),
   M6 = rnose:'tag-members'(course, doopin),
   T3 = rnose:'object-tags'(course, 1),
   ?assertEqual([], M5),
