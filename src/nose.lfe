@@ -110,7 +110,7 @@
  (let ((owner-key (key-admins-for-object type object-id)))
   (case (: er scard redis owner-key) ; mild race condition.  we'll live.
    (1 'not_removed_you_are_last_owner)
-   (_ 
+   (_
     ; remove from OWNER->Objects Owned set
     (: er srem redis (key-owner-admins-objects type owner-uid)
      (key-object-hash type object-id))
