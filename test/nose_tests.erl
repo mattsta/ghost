@@ -58,8 +58,8 @@ tags() ->
   M1 = rnose:'tag-members'(course, poopin),
   M2 = rnose:'tag-members'(course, doopin),
   T1 = rnose:'object-tags'(course, 1),
-  ?assertEqual([<<"nose:course:id:1">>], M1),
-  ?assertEqual([<<"nose:course:id:1">>], M2),
+  ?assertEqual([<<"1">>], M1),
+  ?assertEqual([<<"1">>], M2),
   ?assertEqual([<<"doopin">>, <<"poopin">>], lists:sort(T1)),
 
   rnose:'tag-del'(course, 1, poopin),
@@ -67,7 +67,7 @@ tags() ->
   M4 = rnose:'tag-members'(course, doopin),
   T2 = rnose:'object-tags'(course, 1),
   ?assertEqual([], M3),
-  ?assertEqual([<<"nose:course:id:1">>], M4),
+  ?assertEqual([<<"1">>], M4),
   ?assertEqual([<<"doopin">>], T2),
 
   rnose:'tag-del'(course, 1, doopin),

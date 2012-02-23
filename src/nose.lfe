@@ -96,14 +96,12 @@
 
 ; add a tag to an object
 (defun tag-add (redis type object-id tag)
- (: er sadd redis (key-type-tag-to-object-map type tag)
-  (key-object-hash type object-id))
+ (: er sadd redis (key-type-tag-to-object-map type tag) object-id)
  (: er sadd redis (key-object-tags type object-id) tag))
 
 ; remove a tag from an object
 (defun tag-del (redis type object-id tag)
- (: er srem redis (key-type-tag-to-object-map type tag)
-  (key-object-hash type object-id))
+ (: er srem redis (key-type-tag-to-object-map type tag) object-id)
  (: er srem redis (key-object-tags type object-id) tag))
 
 ; add an owner to an object (update Owner->OBJs map and OBJ->Owners map)
