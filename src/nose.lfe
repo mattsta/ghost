@@ -53,7 +53,7 @@
           (owner-add redis type new-id owner-uid)
           (reserve-name-finalize redis name new-obj-key)
           (object-update redis type new-id 'name name)
-          new-obj-key))
+          new-id))
   ('false 'name_exists)))
 
 (defun reserve-name (redis name)

@@ -29,7 +29,7 @@ nose_test_() ->
 create_objects() ->
   CreatedHash = rnose:'object-create'(course, testingName, mattUid, 
                                       [k1, v1, k2, v2, k3, v3]),
-  ?assertEqual(<<"nose:course:id:1">>, CreatedHash),
+  ?assertEqual(1, CreatedHash),
   KVals = rnose:'object-all'(course, 1),
   ?assertEqual([{k1, <<"v1">>},
                 {k2, <<"v2">>},
