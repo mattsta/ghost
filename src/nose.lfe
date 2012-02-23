@@ -59,7 +59,7 @@
   ('true (let (((tuple new-id new-obj-key) (new-object-key redis type)))
           (: er hmset redis new-obj-key hash-keys-vals)
           (owner-add redis type new-id owner-uid)
-          (reserve-name-finalize redis name new-obj-key)
+          (reserve-name-finalize redis name (key-external type new-id))
           (object-update redis type new-id 'name name)
           (type-add-object redis type new-id)
           new-id))

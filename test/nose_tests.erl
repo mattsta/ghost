@@ -36,7 +36,7 @@ create_objects() ->
                 {k3, <<"v3">>},
                 {name, <<"testingName">>}], KVals),
   NameTo = rnose:'name-target'(testingName),
-  ?assertEqual(<<"nose:course:id:1">>, NameTo),
+  ?assertEqual(<<"course:1">>, NameTo),
   CreatedName = rnose:'object-field'(course, 1, name),
   ?assertEqual(<<"testingName">>, CreatedName),
   ObjectTracked = rnose:'type-object-count'(course),
