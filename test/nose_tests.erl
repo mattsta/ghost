@@ -38,7 +38,11 @@ create_objects() ->
   NameTo = rnose:'name-target'(testingName),
   ?assertEqual(<<"nose:course:id:1">>, NameTo),
   CreatedName = rnose:'object-field'(course, 1, name),
-  ?assertEqual(<<"testingName">>, CreatedName).
+  ?assertEqual(<<"testingName">>, CreatedName),
+  ObjectTracked = rnose:'type-object-count'(course),
+  ?assertEqual(1, ObjectTracked),  % number of objects in type list
+  OneFromTrackingList = rnose:'type-objects'(course),
+  ?assertEqual([<<"1">>], OneFromTrackingList). % id of object in type list
 
 update_objects() ->
   rnose:'object-update'(course, 1, k2, newK2),

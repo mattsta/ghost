@@ -5,6 +5,10 @@
 ;;;--------------------------------------------------------------------
 ;;; Keys
 ;;;--------------------------------------------------------------------
+; list of all objects of type from oldest to newest
+(defsyntax key-type-objects
+ ([type] (: eru er_key 'nose type)))
+
 ; hash of properties for type:id
 (defsyntax key-object-hash
  ([type object-id] (: eru er_key 'nose type 'id object-id)))
@@ -53,6 +57,7 @@
           (owner-add redis type new-id owner-uid)
           (reserve-name-finalize redis name new-obj-key)
           (object-update redis type new-id 'name name)
+          (type-add-object redis type new-id)
           new-id))
   ('false 'name_exists)))
 
@@ -147,3 +152,22 @@
 ; get all owners for OBJECT
 (defun object-owners (redis type object-id)
  (: er smembers redis (key-admins-for-object type object-id)))
+
+;;;--------------------------------------------------------------------
+;;; Overall Type Management
+;;;--------------------------------------------------------------------
+; add a new object to the list of all objects of its type
+(defun type-add-object (redis type object-id)
+ ; we're storing only the type object-id since we are listing by type
+ ; it'll save us strlen("racl:TYPE:") bytes per entry by not storing the
+ ; fully qualfied key (which shouldn't be exposed outside of this module anyway)
+ (: er rpush redis (key-type-objects type) object-id))
+
+(defun type-objects (redis type)
+ (type-objects redis type 0 -1))
+
+(defun type-objects (redis type offset count)
+ (: er lrange redis (key-type-objects type) offset (+ offset count)))
+
+(defun type-object-count (redis type)
+ (: er llen redis (key-type-objects type)))

@@ -46,7 +46,11 @@
     (zs-call tag-members ,redis-name (type tag))
     (zs-call object-tags ,redis-name (type object-id))
     (zs-call owns-objects ,redis-name (type uid))
-    (zs-call object-owners ,redis-name (type object-id)))))
+    (zs-call object-owners ,redis-name (type object-id))
+    (zs-call type-add-object ,redis-name (type object-id))
+    (zs-call type-objects ,redis-name (type))
+    (zs-call type-objects ,redis-name (type offset count))
+    (zs-call type-object-count ,redis-name (type)))))
 
 (defmacro mk-nose-tied-to-redis-name-type
  ([redis-name type]
@@ -63,7 +67,11 @@
     (zs-call-t tag-members ,redis-name ,type (tag))
     (zs-call-t object-tags ,redis-name ,type (object-id))
     (zs-call-t owns-objects ,redis-name ,type (uid))
-    (zs-call-t object-owners ,redis-name ,type (object-id)))))
+    (zs-call-t object-owners ,redis-name ,type (object-id))
+    (zs-call-t type-add-object ,redis-name ,type (object-id))
+    (zs-call-t type-objects ,redis-name ,type ())
+    (zs-call-t type-objects ,redis-name ,type (offset count))
+    (zs-call-t type-object-count ,redis-name ,type ()))))
 
 (mk-nose-tied-to-redis-name redis_nose)
 (mk-nose-tied-to-redis-name-type redis_nose course)
