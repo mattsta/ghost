@@ -17,7 +17,7 @@
 (defsyntax key-object-names
  ([type object-id] (: eru er_key 'nose type 'id object-id 'names)))
 
-; set of admins/owners for an objwct
+; set of admins/owners for an object
 (defsyntax key-admins-for-object
  ([type object-id] (: eru er_key 'nose type 'id object-id 'admins)))
 
