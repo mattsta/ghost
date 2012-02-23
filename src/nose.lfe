@@ -13,6 +13,10 @@
 (defsyntax key-object-hash
  ([type object-id] (: eru er_key 'nose type 'id object-id)))
 
+; for exposing keys to the outside world
+(defsyntax key-external
+ ([type object-id] (: eru er_key type object-id)))
+
 ; set of tags on an object
 (defsyntax key-object-tags
  ([type object-id] (: eru er_key 'nose type 'id object-id 'tags)))
@@ -105,8 +109,8 @@
 ; add an owner to an object (update Owner->OBJs map and OBJ->Owners map)
 (defun owner-add (redis type object-id owner-uid)
  ; add to OWNER->Objects set
- (: er sadd redis (key-owner-admins-objects type owner-uid)
-  (key-object-hash type object-id))
+ ; we don't need fully qualified keys in the set since we store by type
+ (: er sadd redis (key-owner-admins-objects type owner-uid) object-id)
  ; add to OBJECT->Owners set
  (: er sadd redis (key-admins-for-object type object-id) owner-uid))
 
@@ -117,8 +121,8 @@
    (1 'not_removed_you_are_last_owner)
    (_
     ; remove from OWNER->Objects Owned set
-    (: er srem redis (key-owner-admins-objects type owner-uid)
-     (key-object-hash type object-id))
+    ; we don't need fully qualified keys in the set since we store by type
+    (: er srem redis (key-owner-admins-objects type owner-uid) object-id)
     ; Remove from OBJECT->Owners set
     (: er srem redis owner-key owner-uid)))))
 

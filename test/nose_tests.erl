@@ -88,7 +88,7 @@ update_names() ->
 
 find_owners() ->
   Objs = rnose:'owns-objects'(course, mattUid),
-  ?assertEqual([<<"nose:course:id:1">>], Objs),
+  ?assertEqual([<<"1">>], Objs),
 
   Owners = rnose:'object-owners'(course, 1),
   ?assertEqual([<<"mattUid">>], Owners),
