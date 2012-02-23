@@ -52,6 +52,7 @@
           (: er hmset redis new-obj-key hash-keys-vals)
           (owner-add redis type new-id owner-uid)
           (reserve-name-finalize redis name new-obj-key)
+          (object-update redis type new-id 'name name)
           new-obj-key))
   ('false 'name_exists)))
 

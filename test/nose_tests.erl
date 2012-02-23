@@ -33,9 +33,12 @@ create_objects() ->
   KVals = rnose:'object-all'(course, 1),
   ?assertEqual([{k1, <<"v1">>},
                 {k2, <<"v2">>},
-                {k3, <<"v3">>}], KVals),
+                {k3, <<"v3">>},
+                {name, <<"testingName">>}], KVals),
   NameTo = rnose:'name-target'(testingName),
-  ?assertEqual(<<"nose:course:id:1">>, NameTo).
+  ?assertEqual(<<"nose:course:id:1">>, NameTo),
+  CreatedName = rnose:'object-field'(course, 1, name),
+  ?assertEqual(<<"testingName">>, CreatedName).
 
 update_objects() ->
   rnose:'object-update'(course, 1, k2, newK2),
