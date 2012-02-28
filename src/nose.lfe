@@ -169,6 +169,14 @@
 (defun object-owners (redis type object-id)
  (: er smembers redis (key-admins-for-object type object-id)))
 
+; check if user owns one object  (UID -> Ownership mapping test)
+(defun uid-owns-object (redis type uid object-id)
+ (: er sismember redis (key-owner-admins-objects type uid) object-id))
+
+; check of object has one owner  (Object Ownership -> UID mapping)
+(defun object-owned-by-uid (redis type object-id uid)
+ (: er sismember redis (key-admins-for-object type object-id) uid))
+
 ;;;--------------------------------------------------------------------
 ;;; Overall Type Management
 ;;;--------------------------------------------------------------------

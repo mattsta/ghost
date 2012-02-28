@@ -35,6 +35,8 @@ create_objects() ->
                 {k2, <<"v2">>},
                 {k3, <<"v3">>},
                 {name, <<"testingName">>}], KVals),
+  ?assertEqual(true, rnose:'uid-owns-object'(course, mattUid, 1)),
+  ?assertEqual(true, rnose:'object-owned-by-uid'(course, 1, mattUid)),
   NameTo = rnose:'name-target'(testingName),
   ?assertEqual(<<"course:1">>, NameTo),
   CreatedName = rnose:'object-field'(course, 1, name),
