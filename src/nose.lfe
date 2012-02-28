@@ -107,13 +107,13 @@
  (: er set redis (key-name-ptr name) '::removed::))
 
 ; add a tag to an object
-(defun tag-add (redis type object-id tag)
+(defun object-tag-add (redis type object-id tag)
  (: er sadd redis (key-type-tag-to-object-map type tag) object-id)
  (: er sadd redis (key-object-tags type object-id) 
   (lower-case-then-collapse-spaces tag)))
 
 ; remove a tag from an object
-(defun tag-del (redis type object-id tag)
+(defun object-tag-del (redis type object-id tag)
  (: er srem redis (key-type-tag-to-object-map type tag) object-id)
  (: er srem redis (key-object-tags type object-id)
   (lower-case-then-collapse-spaces tag)))
