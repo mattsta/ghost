@@ -34,6 +34,9 @@
  ([type in-tag]
   (: eru er_key 'nose type 'tag (lower-case-then-collapse-spaces in-tag))))
 
+(defsyntax key-type-tags
+ ([type] (: eru er_key 'nose type 'tags)))
+
 ; store all tags as lowercase with limited spacing
 (defun lower-case-then-collapse-spaces
  ([tag] (when (is_list tag))
@@ -109,6 +112,7 @@
 ; add a tag to an object
 (defun object-tag-add (redis type object-id tag)
  (: er sadd redis (key-type-tag-to-object-map type tag) object-id)
+ (: er sadd redis (key-type-tags type) (lower-case-then-collapse-spaces tag))
  (: er sadd redis (key-object-tags type object-id) 
   (lower-case-then-collapse-spaces tag)))
 
@@ -116,7 +120,13 @@
 (defun object-tag-del (redis type object-id tag)
  (: er srem redis (key-type-tag-to-object-map type tag) object-id)
  (: er srem redis (key-object-tags type object-id)
-  (lower-case-then-collapse-spaces tag)))
+  (lower-case-then-collapse-spaces tag))
+ ; race condition here, but meh.
+ (case (: er scard redis (key-type-tag-to-object-map type tag))
+  ; if the tag doesn't point to anything, remove it from global tag set
+  (0 (: er srem redis (key-type-tags type)
+      (lower-case-then-collapse-spaces tag)))
+  (_ 'ok)))
 
 ; add an owner to an object (update Owner->OBJs map and OBJ->Owners map)
 (defun owner-add (redis type object-id owner-uid)
@@ -152,6 +162,17 @@
 ; read where a name points
 (defun name-target (redis name)
  (: er get redis (key-name-ptr name)))
+
+; == SCALABILITY CONCERN ==
+; if people make tons of silly tags, keeping a global tag list may be useless
+; return a list of all tags used by type.  caution: could be large.
+(defun tags (redis type)
+ (: er smembers redis (key-type-tags type)))
+
+; == SCALABILITY CONCERN ==
+; return how many tags are used in total for type
+(defun tags-count (redis type)
+ (: er scard redis (key-type-tags type)))
 
 ; get all objects for a tag
 (defun tag-members (redis type tag)
