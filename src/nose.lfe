@@ -17,9 +17,9 @@
 (defsyntax key-external
  ([type object-id] (: eru er_key type object-id)))
 
-; set of tags on an object
-(defsyntax key-object-tags
- ([type object-id] (: eru er_key 'nose type 'id object-id 'tags)))
+; set of categories on an object
+(defsyntax key-object-categories
+ ([type object-id] (: eru er_key 'nose type 'id object-id 'cats)))
 
 ; set of names on an object
 (defsyntax key-object-names
@@ -29,14 +29,21 @@
 (defsyntax key-admins-for-object
  ([type object-id] (: eru er_key 'nose type 'id object-id 'admins)))
 
-; set of type:tag -> list of objects with that tag
+; type:id:category -> set of tags for this object in this category
+(defsyntax key-type-category-to-tag-map
+ ([type object-id category]
+  (: eru er_key 'nose type 'id object-id 'tag (lccs category))))
+
+; type:category:tag -> set of objects with this category:tag
 (defsyntax key-type-tag-to-object-map
- ([type in-tag]
-  (: eru er_key 'nose type 'tag (lower-case-then-collapse-spaces in-tag))))
+ ([type category in-tag]
+  (: eru er_key 'nose type 'tag (lccs category) (lccs in-tag))))
 
+; type:category -> set of tags in this category of this type
 (defsyntax key-type-tags
- ([type] (: eru er_key 'nose type 'tags)))
+ ([type category] (: eru er_key 'nose type 'tags (lccs category))))
 
+(defsyntax lccs ([x] (lower-case-then-collapse-spaces x)))
 ; store all tags as lowercase with limited spacing
 (defun lower-case-then-collapse-spaces
  ([tag] (when (is_list tag))
@@ -110,22 +117,28 @@
  (: er set redis (key-name-ptr name) '::removed::))
 
 ; add a tag to an object
-(defun object-tag-add (redis type object-id tag)
- (: er sadd redis (key-type-tag-to-object-map type tag) object-id)
- (: er sadd redis (key-type-tags type) (lower-case-then-collapse-spaces tag))
- (: er sadd redis (key-object-tags type object-id) 
-  (lower-case-then-collapse-spaces tag)))
+(defun object-tag-add (redis type object-id category tag)
+ ; add id to type:category:tag -> map of objects with this category:tag
+ (: er sadd redis (key-type-tag-to-object-map type category tag) object-id)
+ ; add tag to type:category -> map of all tags for this category
+ (: er sadd redis (key-type-tags type category) (lccs tag))
+ ; add category to type:id -> map of all categories for this object
+ (: er sadd redis (key-object-categories type object-id) (lccs category))
+ ; add tag to type:id:category -> map of all tags in this cat on this object
+ (: er sadd redis (key-type-category-to-tag-map type object-id category)
+  (lccs tag)))
 
 ; remove a tag from an object
-(defun object-tag-del (redis type object-id tag)
- (: er srem redis (key-type-tag-to-object-map type tag) object-id)
- (: er srem redis (key-object-tags type object-id)
-  (lower-case-then-collapse-spaces tag))
- ; race condition here, but meh.
- (case (: er scard redis (key-type-tag-to-object-map type tag))
-  ; if the tag doesn't point to anything, remove it from global tag set
-  (0 (: er srem redis (key-type-tags type)
-      (lower-case-then-collapse-spaces tag)))
+(defun object-tag-del (redis type object-id category tag)
+ ; remove object from global type:category:tag membership
+ (: er srem redis (key-type-tag-to-object-map type category tag) object-id)
+ ; remove tag from object's category
+ (: er srem redis (key-type-category-to-tag-map type object-id category)
+  (lccs tag))
+ ; if object has no remainaing category members of this type, remove category
+ (case (: er scard redis (key-type-category-to-tag-map type object-id category))
+  ; if the object has no tags in this category, remove the category from obj
+  (0 (: er srem redis (key-object-categories type object-id) (lccs category)))
   (_ 'ok)))
 
 ; add an owner to an object (update Owner->OBJs map and OBJ->Owners map)
@@ -163,24 +176,25 @@
 (defun name-target (redis name)
  (: er get redis (key-name-ptr name)))
 
-; == SCALABILITY CONCERN ==
-; if people make tons of silly tags, keeping a global tag list may be useless
-; return a list of all tags used by type.  caution: could be large.
-(defun tags (redis type)
- (: er smembers redis (key-type-tags type)))
+; get all objects for a category:tag
+(defun category-tag-objects (redis type category tag)
+ (: er smembers redis (key-type-tag-to-object-map type category tag)))
 
-; == SCALABILITY CONCERN ==
-; return how many tags are used in total for type
-(defun tags-count (redis type)
- (: er scard redis (key-type-tags type)))
+; count objects with category:tag
+(defun category-tag-objects-count (redis type category tag)
+ (: er scard redis (key-type-tag-to-object-map type category tag)))
 
-; get all objects for a tag
-(defun tag-members (redis type tag)
- (: er smembers redis (key-type-tag-to-object-map type tag)))
+; get all categories for an object
+(defun object-categories (redis type object-id)
+ (: er smembers redis (key-object-categories type object-id)))
 
-; get all tags for an object
-(defun object-tags (redis type object-id)
- (: er smembers redis (key-object-tags type object-id)))
+; get all tags for a type:id:category
+(defun object-category-tags (redis type object-id category)
+ (: er smembers redis (key-type-category-to-tag-map type object-id category)))
+
+; count objects for category
+(defun object-category-tags-count (redis type object-id category)
+ (: er scard redis (key-type-category-to-tag-map type object-id category)))
 
 ; get all objects by OWNER
 (defun owns-objects (redis type uid)

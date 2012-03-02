@@ -55,27 +55,27 @@ update_objects() ->
   ?assertEqual(<<"v4">>, NewK4).
 
 tags() ->
-  rnose:'object-tag-add'(course, 1, "poopin   HALP"), % test sp removal, to-lc
-  rnose:'object-tag-add'(course, 1, doopin),
-  M1 = rnose:'tag-members'(course, "poopin halp"),
-  M2 = rnose:'tag-members'(course, doopin),
-  T1 = rnose:'object-tags'(course, 1),
+  rnose:'object-tag-add'(course, 1, cat, "poopin   HALP"),
+  rnose:'object-tag-add'(course, 1, cat, doopin),
+  M1 = rnose:'category-tag-objects'(course, cat, "poopin halp"),
+  M2 = rnose:'category-tag-objects'(course, cat, doopin),
+  T1 = rnose:'object-category-tags'(course, 1, cat),
   ?assertEqual([<<"1">>], M1),
   ?assertEqual([<<"1">>], M2),
   ?assertEqual([<<"doopin">>, <<"poopin halp">>], lists:sort(T1)),
 
-  rnose:'object-tag-del'(course, 1, "pOOPin         halp"),
-  M3 = rnose:'tag-members'(course, "poopin halp"),
-  M4 = rnose:'tag-members'(course, doopin),
-  T2 = rnose:'object-tags'(course, 1),
+  rnose:'object-tag-del'(course, 1, "cAT", "pOOPin         halp"),
+  M3 = rnose:'category-tag-objects'(course, cat, "poopin halp"),
+  M4 = rnose:'category-tag-objects'(course, cat, doopin),
+  T2 = rnose:'object-category-tags'(course, 1, "CAT"),
   ?assertEqual([], M3),
   ?assertEqual([<<"1">>], M4),
   ?assertEqual([<<"doopin">>], T2),
 
-  rnose:'object-tag-del'(course, 1, doopin),
-  M5 = rnose:'tag-members'(course, "poopin halp"),
-  M6 = rnose:'tag-members'(course, doopin),
-  T3 = rnose:'object-tags'(course, 1),
+  rnose:'object-tag-del'(course, 1, cat, doopin),
+  M5 = rnose:'category-tag-objects'(course, cat, "poopin halp"),
+  M6 = rnose:'category-tag-objects'(course, cat, doopin),
+  T3 = rnose:'object-category-tags'(course, 1, "Cat"),
   ?assertEqual([], M5),
   ?assertEqual([], M6),
   ?assertEqual([], T3).
