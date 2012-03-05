@@ -75,27 +75,11 @@
         (new-key (key-object-hash type new-id)))
   (tuple new-id new-key)))
 
-(defun object-create (redis type name owner-uid hash-keys-vals)
- ; we don't allow duplicate object ids
- (case (reserve-name redis name)
-  ('true (let (((tuple new-id new-obj-key) (new-object-key redis type)))
-          (: er hmset redis new-obj-key hash-keys-vals)
-          (owner-add redis type new-id owner-uid)
-          (reserve-name-finalize redis name (key-external type new-id))
-          (object-update redis type new-id 'name name)
-          (type-add-object redis type new-id)
-          new-id))
-  ('false 'name_exists)))
-
-(defun reserve-name (redis name)
- (case (: er setnx redis (key-name-ptr name) 'temp-holder)
-  ('true
-   (: er expire redis (key-name-ptr name) 5) ; del in 5s if not used/updated
-   'true)
-  ('false 'false)))
-
-(defun reserve-name-finalize (redis name val)
- (name-update redis name val))
+(defun object-create (redis type owner-uid hash-keys-vals)
+ (let (((tuple new-id new-obj-key) (new-object-key redis type)))
+      (object-update redis type new-id hash-keys-vals)
+      (owner-add redis type new-id owner-uid)
+      new-id))
 
 ;;;--------------------------------------------------------------------
 ;;; Object Updating
@@ -108,13 +92,31 @@
 (defun object-update (redis type object-id hash-keys-vals)
  (: er hmset redis (key-object-hash type object-id) hash-keys-vals))
 
-; update where a name points
-(defun name-update (redis name new-target)
- (: er set redis (key-name-ptr name) new-target))
+; update where a name points (bound by local ids)
+(defun name-new (redis type id name)
+ (case (name-new redis (key-external type id) name)
+  ('set (object-update redis type id 'name name)
+        'set)
+  ('name_exists 'name_exists)))
 
-; mark a name as expired/nil/nowhere
-(defun name-expire (redis name)
- (: er set redis (key-name-ptr name) '::removed::))
+; update where a name points (anything)
+(defun name-new (redis target name)
+ (case (: er setnx redis (key-name-ptr name) target)
+  ('true 'set)
+  ('fase 'name_exists)))
+
+; update where a name points (bound by local ids)
+(defun name-modify (redis type id name)
+ (name-modify redis name (key-external type id))
+ (object-update redis type id 'name name))
+
+; update where a name points (anything)
+(defun name-modify (redis target name)
+ (: er set redis (key-name-ptr name) target))
+
+; delete a named pointer (exterminate)
+(defun name-delete (redis name)
+ (: er del redis (key-name-ptr name)))
 
 ; add a tag to an object
 (defun object-tag-add (redis type object-id category tag)
@@ -211,22 +213,3 @@
 ; check of object has one owner  (Object Ownership -> UID mapping)
 (defun object-owned-by-uid (redis type object-id uid)
  (: er sismember redis (key-admins-for-object type object-id) uid))
-
-;;;--------------------------------------------------------------------
-;;; Overall Type Management
-;;;--------------------------------------------------------------------
-; add a new object to the list of all objects of its type
-(defun type-add-object (redis type object-id)
- ; we're storing only the type object-id since we are listing by type
- ; it'll save us strlen("racl:TYPE:") bytes per entry by not storing the
- ; fully qualfied key (which shouldn't be exposed outside of this module anyway)
- (: er rpush redis (key-type-objects type) object-id))
-
-(defun type-objects (redis type)
- (type-objects redis type 0 -1))
-
-(defun type-objects (redis type offset count)
- (: er lrange redis (key-type-objects type) offset (+ offset count)))
-
-(defun type-object-count (redis type)
- (: er llen redis (key-type-objects type)))

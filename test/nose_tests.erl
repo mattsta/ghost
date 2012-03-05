@@ -23,13 +23,20 @@ nose_test_() ->
     ]
   }.
 
+%%%%%%%%%%
+% -- update / add / remove functions in rnose
+% -- update params here for matched functionality
+% -- test
+%
+
 %%%----------------------------------------------------------------------
 %%% Tests
 %%%----------------------------------------------------------------------
 create_objects() ->
-  CreatedHash = rnose:'object-create'(course, testingName, mattUid, 
+  CreatedHash = rnose:'object-create'(course, mattUid, 
                                       [k1, v1, k2, v2, k3, v3]),
   ?assertEqual(1, CreatedHash),
+  rnose:'name-new'(course, CreatedHash, testingName),
   KVals = rnose:'object-all'(course, 1),
   ?assertEqual([{k1, <<"v1">>},
                 {k2, <<"v2">>},
@@ -40,11 +47,7 @@ create_objects() ->
   NameTo = rnose:'name-target'(testingName),
   ?assertEqual(<<"course:1">>, NameTo),
   CreatedName = rnose:'object-field'(course, 1, name),
-  ?assertEqual(<<"testingName">>, CreatedName),
-  ObjectTracked = rnose:'type-object-count'(course),
-  ?assertEqual(1, ObjectTracked),  % number of objects in type list
-  OneFromTrackingList = rnose:'type-objects'(course),
-  ?assertEqual([<<"1">>], OneFromTrackingList). % id of object in type list
+  ?assertEqual(<<"testingName">>, CreatedName).
 
 update_objects() ->
   rnose:'object-update'(course, 1, k2, newK2),
@@ -81,12 +84,12 @@ tags() ->
   ?assertEqual([], T3).
 
 update_names() ->
-  rnose:'name-update'(testingName, bob222),
+  rnose:'name-modify'(bob222, testingName),
   NewN = rnose:'name-target'(testingName),
   ?assertEqual(<<"bob222">>, NewN),
-  rnose:'name-expire'(testingName),
+  rnose:'name-delete'(testingName),
   NewestN = rnose:'name-target'(testingName),
-  ?assertEqual(<<"::removed::">>, NewestN).
+  ?assertEqual(nil, NewestN).
 
 find_owners() ->
   Objs = rnose:'owns-objects'(course, mattUid),
