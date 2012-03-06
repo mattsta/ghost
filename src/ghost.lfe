@@ -5,6 +5,9 @@
 ;;;--------------------------------------------------------------------
 ;;; Keys
 ;;;--------------------------------------------------------------------
+(defsyntax key-ghost-object
+ ([object-id] (: eru er_key 'ghost 'id object-id)))
+
 (defsyntax key-user-vote
  ([user-id type] (: eru er_key 'ghost 'vote 'user user-id type)))
 
@@ -51,7 +54,7 @@
  ;          individual post (username, timestamp, etc).  Indexing by
  ;          unique metadata isn't useful, but indexing by the actual
  ;          contents of the post/file could be beneficial.
- (case (: er setnx redis object-id data-ptr)
+ (case (: er setnx redis (key-ghost-object object-id) data-ptr)
          ; this sadd is the inverse DATA->{Set of Keys Using Data} map
   ('true (: er sadd redis (key-data data-contents) object-id))
   ('false (tuple 'error 'object_id_already_exists object-id))))
