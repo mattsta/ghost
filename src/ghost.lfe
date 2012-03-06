@@ -91,7 +91,7 @@
  ([redis '() seen result] (: lists reverse result))
  ([redis ((tuple child-id child-score) . xs) seen result]
   (cond
-   ((: lists member child-id seen)
+   ((: lists member child-id seen) ; change to better type if performance prob
      (recur-child-depth redis xs seen ; already in seen, no adding child again
       (cons (tuple child-id child-score 'cycle) result)))
    ('true
