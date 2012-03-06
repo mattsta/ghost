@@ -66,6 +66,7 @@ create_discussion_tree() ->
   ghost:object_parent(tester, b2, c1),
   ghost:object_parent(tester, b2, c2),
   ghost:object_parent(tester, b2, c3),
+  ghost:object_parent(tester, b2, cNotAnObject),
   ghost:vote(tester, up, a2, b3, masterA),
   ghost:vote(tester, up, a2, b3, masterA),
   ghost:vote(tester, up, a2, b2, masterA),
@@ -91,6 +92,7 @@ all_children() ->
   BChilds = ghost:object_children(tester, b2),
   ?assertEqual([{<<"c2">>, <<"3">>},
                 {<<"c1">>, <<"2">>},
+                {<<"cNotAnObject">>, <<"1">>},
                 {<<"c3">>, <<"1">>}], BChilds).
 
 complete_tree_dag() ->
@@ -99,6 +101,7 @@ complete_tree_dag() ->
                 {<<"b2">>,<<"2">>,
                  [{<<"c2">>,<<"3">>,[]},
                   {<<"c1">>,<<"2">>,[]},
+                  {<<"cNotAnObject">>, <<"1">>, []},
                   {<<"c3">>,<<"1">>,[]}]},
                 {<<"b1">>,<<"1">>,[]}], Got).
 
@@ -110,6 +113,7 @@ complete_tree_cyclic() ->
                 {<<"b2">>,<<"2">>,
                  [{<<"c2">>,<<"3">>,[]},
                   {<<"c1">>,<<"2">>,[]},
+                  {<<"cNotAnObject">>, <<"1">>, []},
                   {<<"c3">>,<<"1">>,
                    % this b2 is one because counts/votes/weights are
                    % PER parent-child PAIR -- not per object entirely.
