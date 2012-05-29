@@ -75,10 +75,14 @@
         (new-key (key-object-hash type new-id)))
   (tuple new-id new-key)))
 
-(defun object-create (redis type owner-uid hash-keys-vals)
+(defun object-create (redis type owner-uid)
  (let (((tuple new-id new-obj-key) (new-object-key redis type)))
-      (object-update redis type new-id hash-keys-vals)
       (owner-add redis type new-id owner-uid)
+      new-id))
+
+(defun object-create (redis type owner-uid hash-keys-vals)
+ (let ((new-id (object-create redis type owner-uid)))
+      (object-update redis type new-id hash-keys-vals)
       new-id))
 
 ;;;--------------------------------------------------------------------

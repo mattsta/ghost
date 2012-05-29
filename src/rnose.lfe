@@ -31,6 +31,7 @@
 (defmacro mk-nose-tied-to-redis-name
  ([redis-name]
   `(progn
+    (zs-call object-create ,redis-name (type owner-uid))
     (zs-call object-create ,redis-name (type owner-uid hash-keys-vals))
     (zs-call object-update ,redis-name (type object-id key val))
     (zs-call object-update ,redis-name (type object-id hash-keys-vals))
