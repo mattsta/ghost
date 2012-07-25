@@ -68,6 +68,17 @@
 (defun object_weight_update (redis parent-id child-id delta)
  (: er zincrby redis (key-children-of-object parent-id) delta child-id))
 
+(defun object_weight_replace (redis parent-id old-child-id new-child-id)
+ ; this is completely non-transactional.  we may be dropping votes here
+ ; if someone votes between our get-and-set
+ (let ((current-weight (vote_total redis parent-id old-child-id)))
+  ; This historical parent->child  relation should be stored as metadata
+  ; in the new object so we can backtrack to find the old state of the
+  ; system
+  (object_weight_update redis parent-id new-child-id current-weight)
+  (: er zrem redis (key-children-of-object parent-id) old-child-id)
+  current-weight))
+
 ;;;--------------------------------------------------------------------
 ;;; Object Reading
 ;;;--------------------------------------------------------------------

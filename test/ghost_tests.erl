@@ -23,7 +23,11 @@ ghost_test_() ->
      {"Complete Tree DAG",
        fun complete_tree_dag/0},
      {"Complete Tree Cyclic",
-       fun complete_tree_cyclic/0}
+       fun complete_tree_cyclic/0},
+     {"Replace A Child",
+       fun replace_child/0},
+     {"Check Replace Worked",
+       fun all_children_again/0}
     ]
   }.
 
@@ -119,6 +123,16 @@ complete_tree_cyclic() ->
                    % PER parent-child PAIR -- not per object entirely.
                    [{<<"b2">>, <<"1">>, cycle}]}]},
                 {<<"b1">>,<<"1">>,[]}], Got).
+
+replace_child() ->
+  CurrentScore = ghost:object_weight_replace(tester, a2, b3, bNEWNEWNEW),
+  ?assertEqual(<<"3">>, CurrentScore).
+
+all_children_again() ->
+  AChilds = ghost:object_children(tester, a2),
+  ?assertEqual([{<<"bNEWNEWNEW">>, <<"3">>},
+                {<<"b2">>, <<"2">>},
+                {<<"b1">>, <<"1">>}], AChilds).
 
 %%%----------------------------------------------------------------------
 %%% Setup / Cleanup
