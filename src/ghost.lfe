@@ -60,7 +60,7 @@
   ('false (tuple 'error 'object_id_already_exists object-id))))
 
 (defun object_parent (redis parent-id child-id)
- (object_weight_update redis parent-id child-id +1))
+ (object_weight_update redis parent-id child-id 0))
 
 ;;;--------------------------------------------------------------------
 ;;; Object Updating
@@ -75,8 +75,13 @@
   ; This historical parent->child  relation should be stored as metadata
   ; in the new object so we can backtrack to find the old state of the
   ; system
-  (object_weight_update redis parent-id new-child-id current-weight)
+  ; Remove the old comment before adding the new comment so we don't
+  ; show both by mistake.
+  ; This may cause some lookups between this very short period of time
+  ; to have this entire child comment tree abasent until the weight_update
+  ; below takes hold.
   (: er zrem redis (key-children-of-object parent-id) old-child-id)
+  (object_weight_update redis parent-id new-child-id current-weight)
   current-weight))
 
 ;;;--------------------------------------------------------------------

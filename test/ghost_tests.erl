@@ -80,60 +80,60 @@ create_discussion_tree() ->
 
 vote() ->
   NewScoreFromReturn = ghost:vote(tester, up, keyB, keyBQ, mateo),
-  ?assertEqual(2, NewScoreFromReturn),
-  ?assertEqual(<<"2">>, ghost:vote_total(tester, keyB, keyBQ)).
+  ?assertEqual(1, NewScoreFromReturn),
+  ?assertEqual(<<"1">>, ghost:vote_total(tester, keyB, keyBQ)).
 
 highest_ranked_child() ->
   % In vote/0, we upvote keyBQ with parent of keyB.  So, the largest
   % child of keyB should now be keyBQ
   Got = ghost:object_top_n_children(tester, keyB, 1),
-  ?assertEqual([{<<"keyBQ">>, <<"2">>}], Got).
+  ?assertEqual([{<<"keyBQ">>, <<"1">>}], Got).
 
 all_children() ->
   AChilds = ghost:object_children(tester, a2),
-  ?assertEqual([{<<"b3">>, <<"3">>},
-                {<<"b2">>, <<"2">>},
-                {<<"b1">>, <<"1">>}], AChilds),
+  ?assertEqual([{<<"b3">>, <<"2">>},
+                {<<"b2">>, <<"1">>},
+                {<<"b1">>, <<"0">>}], AChilds),
   BChilds = ghost:object_children(tester, b2),
-  ?assertEqual([{<<"c2">>, <<"3">>},
-                {<<"c1">>, <<"2">>},
-                {<<"cNotAnObject">>, <<"1">>},
-                {<<"c3">>, <<"1">>}], BChilds).
+  ?assertEqual([{<<"c2">>, <<"2">>},
+                {<<"c1">>, <<"1">>},
+                {<<"cNotAnObject">>, <<"0">>},
+                {<<"c3">>, <<"0">>}], BChilds).
 
 complete_tree_dag() ->
   Got = ghost:object_resolve_to_height(tester, a2, 15),
-  ?assertEqual([{<<"b3">>,<<"3">>,[]},
-                {<<"b2">>,<<"2">>,
-                 [{<<"c2">>,<<"3">>,[]},
-                  {<<"c1">>,<<"2">>,[]},
-                  {<<"cNotAnObject">>, <<"1">>, []},
-                  {<<"c3">>,<<"1">>,[]}]},
-                {<<"b1">>,<<"1">>,[]}], Got).
+  ?assertEqual([{<<"b3">>,<<"2">>,[]},
+                {<<"b2">>,<<"1">>,
+                 [{<<"c2">>,<<"2">>,[]},
+                  {<<"c1">>,<<"1">>,[]},
+                  {<<"cNotAnObject">>, <<"0">>, []},
+                  {<<"c3">>,<<"0">>,[]}]},
+                {<<"b1">>,<<"0">>,[]}], Got).
 
 complete_tree_cyclic() ->
   % Add cycle from c3 -> b2:
   ghost:object_parent(tester, c3, b2),
   Got = ghost:object_resolve_to_height(tester, a2, 15),
-  ?assertEqual([{<<"b3">>,<<"3">>,[]},
-                {<<"b2">>,<<"2">>,
-                 [{<<"c2">>,<<"3">>,[]},
-                  {<<"c1">>,<<"2">>,[]},
-                  {<<"cNotAnObject">>, <<"1">>, []},
-                  {<<"c3">>,<<"1">>,
+  ?assertEqual([{<<"b3">>,<<"2">>,[]},
+                {<<"b2">>,<<"1">>,
+                 [{<<"c2">>,<<"2">>,[]},
+                  {<<"c1">>,<<"1">>,[]},
+                  {<<"cNotAnObject">>, <<"0">>, []},
+                  {<<"c3">>,<<"0">>,
                    % this b2 is one because counts/votes/weights are
                    % PER parent-child PAIR -- not per object entirely.
-                   [{<<"b2">>, <<"1">>, cycle}]}]},
-                {<<"b1">>,<<"1">>,[]}], Got).
+                   [{<<"b2">>, <<"0">>, cycle}]}]},
+                {<<"b1">>,<<"0">>,[]}], Got).
 
 replace_child() ->
   CurrentScore = ghost:object_weight_replace(tester, a2, b3, bNEWNEWNEW),
-  ?assertEqual(<<"3">>, CurrentScore).
+  ?assertEqual(<<"2">>, CurrentScore).
 
 all_children_again() ->
   AChilds = ghost:object_children(tester, a2),
-  ?assertEqual([{<<"bNEWNEWNEW">>, <<"3">>},
-                {<<"b2">>, <<"2">>},
-                {<<"b1">>, <<"1">>}], AChilds).
+  ?assertEqual([{<<"bNEWNEWNEW">>, <<"2">>},
+                {<<"b2">>, <<"1">>},
+                {<<"b1">>, <<"0">>}], AChilds).
 
 %%%----------------------------------------------------------------------
 %%% Setup / Cleanup
