@@ -52,7 +52,7 @@ create_discussion_tree() ->
   ghost:object_create(tester, a2, <<"a2">>),
   ghost:object_create(tester, a3, <<"a3">>),
   ghost:object_create(tester, a4, <<"a4">>),
-  ghost:object_create(tester, b1, <<"a1">>),
+  ghost:object_create(tester, b1, <<"b1">>),
   ghost:object_create(tester, b2, <<"b2">>),
   ghost:object_create(tester, b3, <<"b3">>),
   ghost:object_create(tester, c1, <<"c1">>),
