@@ -79,7 +79,8 @@ create_discussion_tree() ->
   ghost:vote(tester, up, b2, c1, masterB).
 
 vote() ->
-  ghost:vote(tester, up, keyB, keyBQ, mateo),
+  NewScoreFromReturn = ghost:vote(tester, up, keyB, keyBQ, mateo),
+  ?assertEqual(2, NewScoreFromReturn),
   ?assertEqual(<<"2">>, ghost:vote_total(tester, keyB, keyBQ)).
 
 highest_ranked_child() ->

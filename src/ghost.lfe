@@ -30,8 +30,8 @@
 (defsyntax key-children-of-object
  ([parent-id] (: eru er_key 'ghost 'children parent-id)))
 
-(defsyntax key-vote-object-total
- ([child-id] (: eru er_key 'ghost 'vote 'total child-id)))
+;(defsyntax key-vote-object-total
+; ([child-id] (: eru er_key 'ghost 'vote 'total child-id)))
 
 (defsyntax key-data
  ([in-data] (: eru er_key 'ghost 'data
@@ -117,18 +117,22 @@
 ;;; Vote Casting
 ;;;--------------------------------------------------------------------
 (defun vote (redis diff parent-id child-id user-id)
- (let (((list delta type) (case diff
-                           ('up   (list +1 'up))
-                           ('down (list -1 'down)))))
-  (: er incrby redis (key-vote-object-total child-id) delta)
+ (let* (((list delta type) (case diff
+                            ('up   (list +1 'up))
+                            ('down (list -1 'down))))
+        (new-score (object_weight_update redis parent-id child-id delta)))
+  ; this incrby is so we can look up scores purely by child-id and not with
+  ; a required (parent-id, child-id) combination
+  ; but, we don't appear to be using it anywhere.  let's comment it out:
+  ; (: er incrby redis (key-vote-object-total child-id) delta)
   (: er sadd redis (key-object-vote parent-id child-id type) user-id)
   (: er sadd redis (key-user-vote user-id type)
                    (: eru er_key parent-id child-id))
-  (object_weight_update redis parent-id child-id delta)
   (: er publish redis (: eru er_key 'ghost 'votes 'user user-id) type)
   (: er publish redis (: eru er_key 'ghost 'votes 'object parent-id child-id)
    type)
-  (: er publish redis (: eru er_key 'ghost 'votes 'object child-id) type)))
+  (: er publish redis (: eru er_key 'ghost 'votes 'object child-id) type)
+  new-score))
 
 ;;;--------------------------------------------------------------------
 ;;; Vote Reading
