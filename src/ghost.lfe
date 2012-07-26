@@ -30,6 +30,9 @@
 (defsyntax key-children-of-object
  ([parent-id] (: eru er_key 'ghost 'children parent-id)))
 
+(defsyntax key-renamed-child-by-parent
+ ([parent-id] (: eru er_key 'ghost 'renamed parent-id)))
+
 ;(defsyntax key-vote-object-total
 ; ([child-id] (: eru er_key 'ghost 'vote 'total child-id)))
 
@@ -66,7 +69,8 @@
 ;;; Object Updating
 ;;;--------------------------------------------------------------------
 (defun object_weight_update (redis parent-id child-id delta)
- (: er zincrby redis (key-children-of-object parent-id) delta child-id))
+ (: er zincrby redis (key-children-of-object parent-id) delta
+  (latest-id redis parent-id child-id)))
 
 (defun object_rename (redis parent-id old-child-id new-child-id)
  ; this is completely non-transactional.  we may be dropping votes here
@@ -80,12 +84,40 @@
   ; This may cause some lookups between this very short period of time
   ; to have this entire child comment tree abasent until the weight_update
   ; below takes hold.
+
+  ; log that {parent, old-child-id} -> {parent, new-child-id} so we can
+  ; fix any incoming comments with old ID parings
+  (: er hset redis
+   (key-renamed-child-by-parent parent-id) old-child-id new-child-id)
   (: er zrem redis (key-children-of-object parent-id) old-child-id)
-  (: er rename redis
+  ; my stupid er library throws an error because redis returns an error
+  ; when the object's (key-children-of-object) key doesn't exist.
+  ; just catch-to-ignore it here
+  (catch (: er rename redis
    (key-children-of-object old-child-id)
-   (key-children-of-object new-child-id))
+   (key-children-of-object new-child-id)))
   (object_weight_update redis parent-id new-child-id current-weight)
   current-weight))
+
+(defun find-one-more-recent-id (redis parent-id child-id)
+ (case (: er hget redis (key-renamed-child-by-parent parent-id) child-id)
+  ('nil 'latest)
+  (newer-child-id newer-child-id)))
+
+(defun latest-id (redis parent-id child-id)
+ (find-latest-id redis parent-id child-id '()))
+
+(defun find-latest-id (redis parent-id child-id anti-loop-log)
+ ; if we've visited this child-id, just assume it's the latest.  we're looping.
+ (case (: lists member child-id anti-loop-log)
+  ('true child-id)
+  ('false
+   ; else, traverse the old->new log until we reach the latest entry
+   (case (find-one-more-recent-id redis parent-id child-id)
+    ('latest child-id)
+    (newer-child-id
+     (find-latest-id redis parent-id newer-child-id
+      (cons child-id anti-loop-log)))))))
 
 ;;;--------------------------------------------------------------------
 ;;; Object Reading
@@ -128,18 +160,19 @@
  (let* (((list delta type) (case diff
                             ('up   (list +1 'up))
                             ('down (list -1 'down))))
-        (new-score (object_weight_update redis parent-id child-id delta)))
+        (new-score (object_weight_update redis parent-id child-id delta))
+        (latest-id (latest-id redis parent-id child-id)))
   ; this incrby is so we can look up scores purely by child-id and not with
   ; a required (parent-id, child-id) combination
   ; but, we don't appear to be using it anywhere.  let's comment it out:
   ; (: er incrby redis (key-vote-object-total child-id) delta)
-  (: er sadd redis (key-object-vote parent-id child-id type) user-id)
+  (: er sadd redis (key-object-vote parent-id latest-id type) user-id)
   (: er sadd redis (key-user-vote user-id type)
-                   (: eru er_key parent-id child-id))
+                   (: eru er_key parent-id latest-id))
   (: er publish redis (: eru er_key 'ghost 'votes 'user user-id) type)
-  (: er publish redis (: eru er_key 'ghost 'votes 'object parent-id child-id)
+  (: er publish redis (: eru er_key 'ghost 'votes 'object parent-id latest-id)
    type)
-  (: er publish redis (: eru er_key 'ghost 'votes 'object child-id) type)
+  (: er publish redis (: eru er_key 'ghost 'votes 'object latest-id) type)
   new-score))
 
 ;;;--------------------------------------------------------------------
