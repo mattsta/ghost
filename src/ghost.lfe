@@ -81,6 +81,9 @@
   ; to have this entire child comment tree abasent until the weight_update
   ; below takes hold.
   (: er zrem redis (key-children-of-object parent-id) old-child-id)
+  (: er rename redis
+   (key-children-of-object old-child-id)
+   (key-children-of-object new-child-id))
   (object_weight_update redis parent-id new-child-id current-weight)
   current-weight))
 
