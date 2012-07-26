@@ -126,7 +126,7 @@ complete_tree_cyclic() ->
                 {<<"b1">>,<<"0">>,[]}], Got).
 
 replace_child() ->
-  CurrentScore = ghost:object_weight_replace(tester, a2, b3, bNEWNEWNEW),
+  CurrentScore = ghost:object_rename(tester, a2, b3, bNEWNEWNEW),
   ?assertEqual(<<"2">>, CurrentScore).
 
 all_children_again() ->

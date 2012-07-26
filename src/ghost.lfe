@@ -68,7 +68,7 @@
 (defun object_weight_update (redis parent-id child-id delta)
  (: er zincrby redis (key-children-of-object parent-id) delta child-id))
 
-(defun object_weight_replace (redis parent-id old-child-id new-child-id)
+(defun object_rename (redis parent-id old-child-id new-child-id)
  ; this is completely non-transactional.  we may be dropping votes here
  ; if someone votes between our get-and-set
  (let ((current-weight (vote_total redis parent-id old-child-id)))
