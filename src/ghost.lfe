@@ -21,6 +21,10 @@
  ([parent-id child-id type]
   (: eru er_key 'ghost 'vote 'object parent-id child-id type)))
 
+(defsyntax key-object-vote-updown
+ ([parent-id child-id type]
+  (: eru er_key 'ghost 'vote 'updown parent-id child-id type)))
+
 (defsyntax key-object-vote-up
  ([parent-id child-id] (key-object-vote parent-id child-id 'up)))
 
@@ -93,9 +97,16 @@
   ; my stupid er library throws an error because redis returns an error
   ; when the object's (key-children-of-object) key doesn't exist.
   ; just catch-to-ignore it here
+  ; these *really* should be transactional
   (catch (: er rename redis
    (key-children-of-object old-child-id)
    (key-children-of-object new-child-id)))
+  (catch (: er rename redis
+   (key-object-vote-updown parent-id old-child-id 'up)
+   (key-object-vote-updown parent-id new-child-id 'up)))
+  (catch (: er rename redis
+   (key-object-vote-updown parent-id old-child-id 'down)
+   (key-object-vote-updown parent-id new-child-id 'down)))
   (object_weight_update redis parent-id new-child-id current-weight)
   current-weight))
 
@@ -152,7 +163,7 @@
              (recur-child-depth redis (object_children redis child-id)
               new-seen '()))
        result)))))))
-   
+
 ;;;--------------------------------------------------------------------
 ;;; Vote Casting
 ;;;--------------------------------------------------------------------
@@ -169,6 +180,8 @@
   (: er sadd redis (key-object-vote parent-id latest-id type) user-id)
   (: er sadd redis (key-user-vote user-id type)
                    (: eru er_key parent-id latest-id))
+  ; here we record the number of up/down vote totals for this {parent, child}
+  (: er incrby redis (key-object-vote-updown parent-id latest-id type) 1)
   (: er publish redis (: eru er_key 'ghost 'votes 'user user-id) type)
   (: er publish redis (: eru er_key 'ghost 'votes 'object parent-id latest-id)
    type)
@@ -188,6 +201,11 @@
  (tuple
   (: er smembers redis (key-object-vote-up parent-id child-id))
   (: er smembers redis (key-object-vote-down parent-id child-id))))
+
+(defun votes_updown (redis parent-id child-id)
+ (tuple
+  (: er get redis (key-object-vote-updown parent-id child-id 'up))
+  (: er get redis (key-object-vote-updown parent-id child-id 'down))))
 
 (defun votes_by_user (redis user-id)
  (tuple

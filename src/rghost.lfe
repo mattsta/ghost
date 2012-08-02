@@ -22,6 +22,7 @@
     (zs-call vote_total_object ,redis-name (child-id))
     (zs-call vote_total ,redis-name (parent-id child-id))
     (zs-call votes_by_object ,redis-name (parent-id child-id))
+    (zs-call votes_updown ,redis-name (parent-id child-id))
     (zs-call votes_by_user ,redis-name (user-id)))))
 
 (mk-ghost-tied-to-redis-name redis_ghost)
