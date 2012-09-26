@@ -68,12 +68,20 @@
  ([in-name] (: eru er_key 'nose 'name in-name)))
 
 ;;;--------------------------------------------------------------------
+;;; Base Conversions
+;;;--------------------------------------------------------------------
+(defsyntax to-base-36
+ ([original-int]
+  (list_to_binary (: string to_lower (integer_to_list original-int 36)))))
+
+;;;--------------------------------------------------------------------
 ;;; Object Creation
 ;;;--------------------------------------------------------------------
 (defun new-object-key (redis type)
  (let* ((new-id (: er incr redis (key-counter-nose-type-object-id type)))
-        (new-key (key-object-hash type new-id)))
-  (tuple new-id new-key)))
+        (new-36-id (to-base-36 new-id))
+        (new-key (key-object-hash type new-36-id)))
+  (tuple new-36-id new-key)))
 
 (defun object-create (redis type owner-uid)
  (let (((tuple new-id new-obj-key) (new-object-key redis type)))
