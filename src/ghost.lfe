@@ -168,9 +168,12 @@
 ;;; Vote Casting
 ;;;--------------------------------------------------------------------
 (defun vote (redis diff parent-id child-id user-id)
+ (vote redis diff 1 parent-id child-id user-id))
+
+(defun vote (redis diff weight parent-id child-id user-id)
  (let* (((list delta type) (case diff
-                            ('up   (list +1 'up))
-                            ('down (list -1 'down))))
+                            ('up   (list (* +1 weight) 'up))
+                            ('down (list (* -1 weight) 'down))))
         (new-score (object_weight_update redis parent-id child-id delta))
         (latest-id (latest-id redis parent-id child-id)))
   ; this incrby is so we can look up scores purely by child-id and not with

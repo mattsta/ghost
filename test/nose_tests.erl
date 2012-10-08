@@ -60,6 +60,7 @@ update_objects() ->
 tags() ->
   rnose:'object-tag-add'(course, 1, cat, "poopin   HALP"),
   rnose:'object-tag-add'(course, 1, cat, doopin),
+%  rnose:'object-tag-add'(course, 1, cat, "zef £ abc"),
   M1 = rnose:'category-tag-objects'(course, cat, "poopin halp"),
   M2 = rnose:'category-tag-objects'(course, cat, doopin),
   T1 = rnose:'object-category-tags'(course, 1, cat),
