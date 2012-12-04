@@ -119,7 +119,7 @@
 
 ; update where a name points (bound by local ids)
 (defun name-modify (redis type id name)
- (name-modify redis name (key-external type id))
+ (name-modify redis (key-external type id) name)
  (object-update redis type id 'name name))
 
 ; update where a name points (anything)
