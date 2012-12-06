@@ -11,6 +11,8 @@
     (zs-call object_parent ,redis-name (parent-id child-id))
     (zs-call object_weight_update ,redis-name (parent-id child-id delta))
     (zs-call object_rename ,redis-name (parent-id old-ch-id child-id))
+    (zs-call parents-of-child ,redis-name (object-id))
+    (zs-call number-of-children ,redis-name (object-id))
     (zs-call object_top_n_children ,redis-name (object-id n))
     (zs-call object_children ,redis-name (object-id))
     (zs-call object_resolve_to_height ,redis-name (object-id height))

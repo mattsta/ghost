@@ -44,6 +44,12 @@
  ([in-data] (: eru er_key 'ghost 'data
              (: mochihex to_hex (: crypto sha in-data)))))
 
+(defsyntax key-parents-of-object
+ ([child-id] (: eru er_key 'ghost 'parents-of child-id)))
+
+ (defsyntax key-child-count-of-parent
+  ([parent-id] (: eru er_key 'ghost 'cc parent-id)))
+
 ;;;--------------------------------------------------------------------
 ;;; Object Creation
 ;;;--------------------------------------------------------------------
@@ -67,11 +73,40 @@
   ('false (tuple 'error 'object_id_already_exists object-id))))
 
 (defun object_parent (redis parent-id child-id)
+ ; for all parents of this child (including this here-parent) increase
+ ; their has-a-child count.  We're doing full depth child counts, people.
+ ; need to maintain a list of child-id -> [parent-ids]
+ ; for each parent id in list, increase the child count.
+ (add-parent redis child-id parent-id) ; parents are unranked
+ ; NOTE: if a child has many many many parents, this will take a few seconds:
+ ; (this would be a great candidate for redis scripting)
+ ; IF YOU ADD A CHILD TO A PARENT AND THE CHILD HAS SUB-CHILDREN, THEY WILL NOT
+ ; BE REFLECTED IN THE TOTAL COUNT.  increment-parent-child only does +1
+ (increment-parent-child-count redis child-id) ; fully recursive up the chain
  (object_weight_update redis parent-id child-id 0))
 
 ;;;--------------------------------------------------------------------
 ;;; Object Updating
 ;;;--------------------------------------------------------------------
+(defun add-parent (redis child-id parent-id)
+ (: er sadd redis (key-parents-of-object child-id) parent-id))
+
+(defun increment-parent-child-count (redis child-id)
+ (increment-child-count redis (parents-of-child redis child-id) '()))
+
+(defun increment-child-count
+ ([redis () anti-loop-log] anti-loop-log)
+ ([redis (parent . parents) anti-loop-log]
+  (case (: lists member parent anti-loop-log)
+   ('true ; already visisted this parent, skip it and continue
+    (increment-child-count redis parents anti-loop-log))
+   ('false
+    (let ((new-anti-looper (cons parent anti-loop-log)))
+     (: er incrby redis (key-child-count-of-parent parent) 1)
+     (increment-child-count redis
+      (parents-of-child redis parent) new-anti-looper) ; avoid loops
+     (increment-child-count redis parents new-anti-looper))))))
+
 (defun object_weight_update (redis parent-id child-id delta)
  (: er zincrby redis (key-children-of-object parent-id) delta
   (latest-id redis parent-id child-id)))
@@ -133,6 +168,14 @@
 ;;;--------------------------------------------------------------------
 ;;; Object Reading
 ;;;--------------------------------------------------------------------
+(defun parents-of-child (redis child-id)
+ (: er smembers redis (key-parents-of-object child-id)))
+
+(defun number-of-children (redis parent-id)
+ (case (: er get redis (key-child-count-of-parent parent-id))
+  ('nil 0)
+  (N (list_to_integer (binary_to_list N)))))
+
 (defun object_top_n_children (redis object-id n)
  (: er zrevrange redis
   (key-children-of-object object-id) 0 (- n 1) 'withscores))

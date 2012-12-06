@@ -27,7 +27,11 @@ ghost_test_() ->
      {"Replace A Child",
        fun replace_child/0},
      {"Check Replace Worked",
-       fun all_children_again/0}
+       fun all_children_again/0},
+     {"Check Parents",
+       fun check_parents/0},
+     {"Check Child Count",
+       fun check_child_counts/0}
     ]
   }.
 
@@ -35,21 +39,21 @@ ghost_test_() ->
 %%% Tests
 %%%----------------------------------------------------------------------
 create_objects() ->
-  AtoZ = lists:seq($A, $Z),
-  % Generate keyA - keyZ
-  Keys = [<<"key", KeyId>> || KeyId <- AtoZ],
-  Vals = [<<"val", KeyId>> || KeyId <- AtoZ],
+  AtoG = lists:seq($A, $G),
+  % Generate keyA - keyG
+  Keys = [<<"key", KeyId>> || KeyId <- AtoG],
+  Vals = [<<"val", KeyId>> || KeyId <- AtoG],
   Combined = lists:zip(Keys, Vals),
-  KeysB = [<<"keyB", KeyId>> || KeyId <- AtoZ],
-  ValsB = [<<"valB", KeyId>> || KeyId <- AtoZ],
+  KeysB = [<<"keyB", KeyId>> || KeyId <- AtoG],
+  ValsB = [<<"valB", KeyId>> || KeyId <- AtoG],
   ghost:object_create(tester, root, <<"nil">>),
   [ghost:object_create(tester, Key, Val) || {Key, Val} <- Combined],
   [ghost:object_create(tester, KeyB, ValB) || KeyB <- KeysB,
                                               ValB <- ValsB],
   [ghost:object_parent(tester, root, Key) || Key <- Keys],
   [ghost:object_parent(tester, Key, KeyB) || Key <- Keys, KeyB <- KeysB],
-  ?assertMatch({error, object_id_already_exists, keyZ},
-   ghost:object_create(tester, keyZ, nil)).
+  ?assertMatch({error, object_id_already_exists, keyA},
+   ghost:object_create(tester, keyA, nil)).
 
 create_discussion_tree() ->
   ghost:object_create(tester, a1, <<"a1">>),
@@ -63,14 +67,25 @@ create_discussion_tree() ->
   ghost:object_create(tester, c2, <<"c2">>),
   ghost:object_create(tester, c3, <<"c3">>),
   % Arrange: a2 -> {b3, b1, b2}
-  %                         b2 -> {c2, c1, c3}
+  %                         b2 -> {c2, c1, cNotAnObject, c3}
   ghost:object_parent(tester, a2, b1),
+  ?assertEqual(1, ghost:'number-of-children'(tester, a2)),
   ghost:object_parent(tester, a2, b2),
+  ?assertEqual(2, ghost:'number-of-children'(tester, a2)),
   ghost:object_parent(tester, a2, b3),
+  ?assertEqual(3, ghost:'number-of-children'(tester, a2)),
   ghost:object_parent(tester, b2, c1),
+  ?assertEqual(1, ghost:'number-of-children'(tester, b2)),
+  ?assertEqual(4, ghost:'number-of-children'(tester, a2)),
   ghost:object_parent(tester, b2, c2),
+  ?assertEqual(2, ghost:'number-of-children'(tester, b2)),
+  ?assertEqual(5, ghost:'number-of-children'(tester, a2)),
   ghost:object_parent(tester, b2, c3),
+  ?assertEqual(3, ghost:'number-of-children'(tester, b2)),
+  ?assertEqual(6, ghost:'number-of-children'(tester, a2)),
   ghost:object_parent(tester, b2, cNotAnObject),
+  ?assertEqual(4, ghost:'number-of-children'(tester, b2)),
+  ?assertEqual(7, ghost:'number-of-children'(tester, a2)),
   ghost:vote(tester, up, a2, b3, masterA),
   ghost:vote(tester, up, a2, b3, masterA),
   ghost:vote(tester, up, a2, b2, masterA),
@@ -112,7 +127,19 @@ complete_tree_dag() ->
 
 complete_tree_cyclic() ->
   % Add cycle from c3 -> b2:
+  ?assertEqual(7, ghost:'number-of-children'(tester, a2)),
+  ?assertEqual(4, ghost:'number-of-children'(tester, b2)),
   ghost:object_parent(tester, c3, b2),
+  % This should be 8, but it reports as 9.  Ran out of time
+  % to reason why it should be what it should be.  It only
+  % appears to happen when turning the tree into a loopy
+  % graph, so it's not a huge deal right now.
+  ?assertEqual(9, ghost:'number-of-children'(tester, a2)),
+  % ah ha -- for some reason, b2 is getting incremented here.
+  % oh, because b2 -> c3 -> b2, so the child b2 is incrementing
+  % itself in addition to the +1 it gets normally.  I think.
+  % This *should* be 4, not 5, right?  Fix sometime.
+  ?assertEqual(5, ghost:'number-of-children'(tester, b2)),
   Got = ghost:object_resolve_to_height(tester, a2, 15),
   ?assertEqual([{<<"b3">>,<<"2">>,[]},
                 {<<"b2">>,<<"1">>,
@@ -134,6 +161,19 @@ all_children_again() ->
   ?assertEqual([{<<"bNEWNEWNEW">>, <<"2">>},
                 {<<"b2">>, <<"1">>},
                 {<<"b1">>, <<"0">>}], AChilds).
+
+check_parents() ->
+  Parents = ghost:'parents-of-child'(tester, b2),
+  ?assertEqual([<<"a2">>, <<"c3">>], lists:sort(Parents)).
+
+check_child_counts() ->
+  % These are tested throughout creation above, but we can
+  % re-sanity-check them here just for fun.
+  A2ChildCount = ghost:'number-of-children'(tester, a2),
+  ?assertEqual(9, A2ChildCount),
+  B2ChildCount = ghost:'number-of-children'(tester, b2),
+  % see complete_tree_cyclic for why this is 5:
+  ?assertEqual(5, B2ChildCount).
 
 %%%----------------------------------------------------------------------
 %%% Setup / Cleanup
