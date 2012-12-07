@@ -16,6 +16,7 @@
     (zs-call object_top_n_children ,redis-name (object-id n))
     (zs-call object_children ,redis-name (object-id))
     (zs-call object_resolve_to_height ,redis-name (object-id height))
+    (zs-call object_resolve_to_depth ,redis-name (object-id height depth))
     (zs-call recur-child-depth ,redis-name (parent-id child-ids-with-scores))
     (zs-call vote ,redis-name (diff parent-id child-id user-id))
     (zs-call vote ,redis-name (diff weight parent-id child-id user-id))

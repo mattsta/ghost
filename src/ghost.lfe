@@ -185,25 +185,38 @@
                                             ; and -1 means "the last entry"
 
 (defun object_resolve_to_height (redis object-id height)
- (lc ((<- (tuple child score) (object_top_n_children redis object-id height)))
-  (tuple child score
-   (recur-child-depth redis child (object_children redis child)))))
+ (object_resolve_to_depth redis object-id height 65535)) ; assume 64k = 'inf
 
-(defun recur-child-depth (redis parent-id child-ids-with-scores)
- (recur-child-depth redis child-ids-with-scores (list parent-id) '()))
+(defun object_resolve_to_depth
+ ([redis object-id height 0] '())
+ ([redis object-id height 1] ; this is a shortcut so we don't recurse as much.
+                             ; it's the same as the next function clause
+                             ; since we give recur-child-depth a 0 depth
+  (lc ((<- (tuple child score) (object_top_n_children redis object-id height)))
+   (tuple child score '())))
+ ([redis object-id height depth]
+  (lc ((<- (tuple child score) (object_top_n_children redis object-id height)))
+   (tuple child score
+    (recur-child-depth redis
+     (- depth 1) child (object_children redis child))))))
+
+(defun recur-child-depth (redis depth parent-id child-ids-with-scores)
+ (recur-child-depth redis depth child-ids-with-scores (list parent-id) '()))
 
 (defun recur-child-depth
- ([redis '() seen result] (: lists reverse result))
- ([redis ((tuple child-id child-score) . xs) seen result]
+ ([redis 0 _ seen result] (: lists reverse result))
+ ([redis _ '() seen result] (: lists reverse result))
+ ([redis depth ((tuple child-id child-score) . xs) seen result]
   (cond
    ((: lists member child-id seen) ; change to better type if performance prob
-     (recur-child-depth redis xs seen ; already in seen, no adding child again
+     (recur-child-depth redis depth xs seen ; already in seen, no adding again
       (cons (tuple child-id child-score 'cycle) result)))
    ('true
     (let ((new-seen (cons child-id seen)))
-     (recur-child-depth redis xs new-seen
+     (recur-child-depth redis depth xs new-seen
       (cons (tuple child-id child-score
-             (recur-child-depth redis (object_children redis child-id)
+             (recur-child-depth redis
+              (- depth 1) (object_children redis child-id)
               new-seen '()))
        result)))))))
 

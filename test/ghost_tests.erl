@@ -22,6 +22,8 @@ ghost_test_() ->
        fun all_children/0},
      {"Complete Tree DAG",
        fun complete_tree_dag/0},
+     {"One Level Tree DAG",
+       fun one_level_tree_dag/0},
      {"Complete Tree Cyclic",
        fun complete_tree_cyclic/0},
      {"Replace A Child",
@@ -123,6 +125,12 @@ complete_tree_dag() ->
                   {<<"c1">>,<<"1">>,[]},
                   {<<"cNotAnObject">>, <<"0">>, []},
                   {<<"c3">>,<<"0">>,[]}]},
+                {<<"b1">>,<<"0">>,[]}], Got).
+
+one_level_tree_dag() ->
+  Got = ghost:object_resolve_to_depth(tester, a2, 15, 1),
+  ?assertEqual([{<<"b3">>,<<"2">>,[]},
+                {<<"b2">>,<<"1">>, []},
                 {<<"b1">>,<<"0">>,[]}], Got).
 
 complete_tree_cyclic() ->
