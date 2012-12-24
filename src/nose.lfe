@@ -115,7 +115,7 @@
 (defun name-new (redis target name)
  (case (: er setnx redis (key-name-ptr name) target)
   ('true 'set)
-  ('fase 'name_exists)))
+  ('false 'name_exists)))
 
 ; update where a name points (bound by local ids)
 (defun name-modify (redis type id name)
