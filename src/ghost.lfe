@@ -91,6 +91,9 @@
 (defun add-parent (redis child-id parent-id)
  (: er sadd redis (key-parents-of-object child-id) parent-id))
 
+(defun remove-parent (redis child-id parent-id)
+ (: er srem redis (key-parents-of-object child-id) parent-id))
+
 (defun increment-parent-child-count (redis child-id)
  (increment-child-count redis (parents-of-child redis child-id) '()))
 
@@ -110,6 +113,11 @@
 (defun object_weight_update (redis parent-id child-id delta)
  (: er zincrby redis (key-children-of-object parent-id) delta
   (latest-id redis parent-id child-id)))
+
+(defun object_remove_from_parent (redis parent-id child-id)
+ (remove-parent redis child-id parent-id)
+ (: er decrby redis (key-child-count-of-parent parent-id) 1)
+ (: er zrem redis parent-id child-id))
 
 (defun object_rename (redis parent-id old-child-id new-child-id)
  ; this is completely non-transactional.  we may be dropping votes here
