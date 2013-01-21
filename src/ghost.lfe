@@ -116,8 +116,11 @@
 
 (defun object_remove_from_parent (redis parent-id child-id)
  (remove-parent redis child-id parent-id)
+ ; this decrby will keep decrby-ing even if the other two operations
+ ; are noops.  we should only decrby if the child is successfully
+ ; removed from the parent.
  (: er decrby redis (key-child-count-of-parent parent-id) 1)
- (: er zrem redis parent-id child-id))
+ (: er zrem redis (key-children-of-object parent-id) child-id))
 
 (defun object_rename (redis parent-id old-child-id new-child-id)
  ; this is completely non-transactional.  we may be dropping votes here
